@@ -99,9 +99,10 @@ app.get('/qr', (req, res) => {
 // 生成二维码 API
 app.get('/api/qrcode', async (req, res) => {
   try {
-    const url = `http://localhost:${PORT}`;
-    const qrDataURL = await QRCode.toDataURL(url, { width: 300 });
-    res.json({ qrcode: qrDataURL, url });
+    // 从环境变量或请求头获取实际访问地址
+    const baseUrl = process.env.BASE_URL || `http://localhost:${PORT}`;
+    const qrDataURL = await QRCode.toDataURL(baseUrl, { width: 300 });
+    res.json({ qrcode: qrDataURL, url: baseUrl });
   } catch (error) {
     res.status(500).json({ error: '生成二维码失败' });
   }

@@ -22,17 +22,20 @@ npm install
 
 ### 2. 配置
 
-复制 `.env.example` 到 `.env` 并修改管理员密码：
+复制 `.env.example` 到 `.env` 并修改配置：
 
 ```bash
 copy .env.example .env
 ```
 
-编辑 `.env` 文件，修改密码：
-```
+编辑 `.env` 文件：
+```env
 ADMIN_PASSWORD=your_secure_password
 PORT=3000
+BASE_URL=https://your-domain.com  # 阿里云服务器的实际访问地址（用于生成二维码）
 ```
+
+**重要**：如果部署到云服务器，必须设置 `BASE_URL` 为实际的访问地址（包括 https://）。
 
 ### 3. 启动服务
 
