@@ -1,0 +1,13 @@
+services:
+  vote:
+    build: .
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD before starting the service}
+    volumes:
+      - vote-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  vote-data:
