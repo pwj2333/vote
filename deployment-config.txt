@@ -1,0 +1,50 @@
+=== 阿里云服务器部署配置 ===
+
+域名：https://vote.ruicogd.com
+
+1. 在服务器上创建 .env 文件：
+-----------------------------------
+ADMIN_PASSWORD=your_secure_password
+PORT=3000
+BASE_URL=https://vote.ruicogd.com
+-----------------------------------
+
+2. 启动服务：
+   npm start
+
+3. 访问地址：
+   - 投票页：https://vote.ruicogd.com
+   - 后台管理：https://vote.ruicogd.com/admin
+   - 二维码页：https://vote.ruicogd.com/qr
+
+4. 使用说明：
+   - 访问二维码页，打印或投屏展示
+   - 用户用微信扫码，会直接跳转到投票页
+   - 不需要微信开发者账号
+
+5. Nginx 反向代理配置（如果使用）：
+-----------------------------------
+server {
+    listen 443 ssl;
+    server_name vote.ruicogd.com;
+    
+    ssl_certificate /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+    
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+-----------------------------------
+
+6. PM2 守护进程配置（推荐）：
+   npm install -g pm2
+   pm2 start server.js --name voting-system
+   pm2 save
+   pm2 startup
+
