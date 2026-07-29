@@ -5,6 +5,7 @@ services:
       - "${PORT:-3000}:3000"
     environment:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD before starting the service}
+      BASE_URL: ${BASE_URL:-}
     volumes:
       - vote-data:/app/data
     restart: unless-stopped

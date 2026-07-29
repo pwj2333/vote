@@ -99,7 +99,7 @@ app.get('/qr', (req, res) => {
 // 生成二维码 API
 app.get('/api/qrcode', async (req, res) => {
   try {
-    const url = `${req.protocol}://${req.get('host')}`;
+    const url = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
     const qrDataURL = await QRCode.toDataURL(url, { width: 300 });
     res.json({ qrcode: qrDataURL, url });
   } catch (error) {
