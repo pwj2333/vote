@@ -1,4 +1,5 @@
-let DEPARTMENTS = [];
+let ALL_DEPARTMENTS = [];
+let VOTING_DEPARTMENTS = [];
 let mySelectedDepts = [];
 let voteSelectedDepts = [];
 
@@ -43,7 +44,7 @@ function toggleMyDepartment(dept, card) {
   }
 
   // 刷新投票区
-  renderVoteDepartments(DEPARTMENTS);
+  renderVoteDepartments(VOTING_DEPARTMENTS);
 }
 
 // 渲染投票部门卡片（屏蔽所属部门）
@@ -90,7 +91,7 @@ function toggleVoteDepartment(dept, card) {
   }
 
   // 重新渲染投票区以更新所有卡片状态
-  renderVoteDepartments(DEPARTMENTS);
+  renderVoteDepartments(VOTING_DEPARTMENTS);
   updateSubmitButton();
 }
 
@@ -163,13 +164,18 @@ async function init() {
       return;
     }
 
-    // 加载部门列表
-    const deptRes = await fetch('/api/departments');
-    const deptData = await deptRes.json();
-    DEPARTMENTS = deptData.departments;
+    // 加载完整部门列表（所属部门）
+    const allDeptRes = await fetch('/api/all-departments');
+    const allDeptData = await allDeptRes.json();
+    ALL_DEPARTMENTS = allDeptData.departments;
 
-    renderMyDepartments(DEPARTMENTS);
-    renderVoteDepartments(DEPARTMENTS);
+    // 加载参选部门列表（投票）
+    const votingDeptRes = await fetch('/api/voting-departments');
+    const votingDeptData = await votingDeptRes.json();
+    VOTING_DEPARTMENTS = votingDeptData.departments;
+
+    renderMyDepartments(ALL_DEPARTMENTS);
+    renderVoteDepartments(VOTING_DEPARTMENTS);
 
   } catch (error) {
     alert('加载失败，请刷新页面');

@@ -13,11 +13,19 @@ if (!fs.existsSync(dataDir)) {
 
 let db = null;
 
-// 部门常量（10个参选部门）
-const DEPARTMENTS = [
+// 完整部门列表（15个，用于所属部门选择）
+const ALL_DEPARTMENTS = [
   '人力资源行政部', '采购部', '财务部', '航运部',
-  'G2', '流程数智化部', '运营部', '海务部',
-  '机务部', 'G1'
+  '流程数智化部', '运营部', '海务部', '机务部',
+  '安质部', '投资部', '造船部', '法务审计部',
+  'G1小组', 'G2小组', 'PMS小组'
+];
+
+// 参选部门列表（10个，用于投票选择）
+const VOTING_DEPARTMENTS = [
+  '人力资源行政部', '采购部', '财务部', '航运部',
+  'G2小组', '流程数智化部', '运营部', '海务部',
+  '机务部', 'G1小组'
 ];
 
 // 初始化数据库
@@ -149,7 +157,7 @@ function getDepartmentStats() {
   const stats = {};
 
   // 初始化所有部门计数为 0
-  DEPARTMENTS.forEach(dept => {
+  VOTING_DEPARTMENTS.forEach(dept => {
     stats[dept] = 0;
   });
 
@@ -203,5 +211,7 @@ module.exports = {
   configOperations,
   getDepartmentStats,
   submitVote,
-  DEPARTMENTS
+  ALL_DEPARTMENTS,
+  VOTING_DEPARTMENTS,
+  DEPARTMENTS: VOTING_DEPARTMENTS
 };
