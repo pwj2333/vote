@@ -16,34 +16,140 @@
     }
     .qr-container {
       background: white;
-      padding: 40px;
+      padding: 50px;
       border-radius: 16px;
       box-shadow: 0 10px 40px rgba(0,0,0,0.2);
       text-align: center;
+      max-width: 500px;
     }
     h1 {
-      margin: 0 0 20px 0;
+      margin: 0 0 10px 0;
       color: #333;
+      font-size: 32px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 18px;
     }
     #qrcode {
       margin: 20px 0;
+    }
+    #qrcode img {
+      border: 3px solid #1890ff;
+      border-radius: 8px;
+      padding: 10px;
     }
     .url {
       color: #666;
       font-size: 14px;
       word-break: break-all;
+      margin-top: 20px;
+    }
+    .countdown-section {
+      display: none;
+      margin-top: 30px;
+      padding-top: 30px;
+      border-top: 2px solid #f0f0f0;
+    }
+    .countdown-section.active {
+      display: block;
+    }
+    .countdown-timer {
+      font-size: 72px;
+      font-weight: 700;
+      color: #1890ff;
+      margin: 20px 0;
+      font-family: 'Courier New', monospace;
+    }
+    .countdown-timer.warning {
+      color: #ff4d4f;
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    .countdown-label {
+      font-size: 20px;
+      color: #666;
+      margin-bottom: 10px;
+    }
+    .status-message {
+      font-size: 18px;
+      color: #52c41a;
+      margin-top: 20px;
+      font-weight: 600;
+    }
+    .btn {
+      padding: 16px 40px;
+      font-size: 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+      margin-top: 20px;
+    }
+    .btn-primary {
+      background: #1890ff;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #096dd9;
+    }
+    .btn-primary:disabled {
+      background: #d9d9d9;
+      cursor: not-allowed;
+    }
+    .password-input {
+      display: none;
+      margin-top: 20px;
+    }
+    .password-input.active {
+      display: block;
+    }
+    .password-input input {
+      padding: 12px;
+      font-size: 16px;
+      border: 2px solid #d9d9d9;
+      border-radius: 6px;
+      margin-right: 10px;
+      width: 200px;
+    }
+    .btn-small {
+      padding: 12px 24px;
+      font-size: 16px;
     }
   </style>
 </head>
 <body>
   <div class="qr-container">
     <h1>部门评选投票</h1>
-    <p>请使用微信扫码参与投票</p>
+    <p class="subtitle">请使用微信扫码参与投票</p>
     <div id="qrcode"></div>
     <p class="url" id="url">加载中...</p>
+
+    <div id="startSection">
+      <button id="showPasswordBtn" class="btn btn-primary">开始投票（管理员）</button>
+
+      <div id="passwordSection" class="password-input">
+        <input type="password" id="passwordInput" placeholder="请输入管理员密码">
+        <button id="confirmStartBtn" class="btn btn-primary btn-small">确认开始</button>
+      </div>
+    </div>
+
+    <div id="countdownSection" class="countdown-section">
+      <div class="countdown-label">投票倒计时</div>
+      <div id="countdownTimer" class="countdown-timer">3:00</div>
+      <div class="status-message">投票进行中，请扫码参与</div>
+    </div>
   </div>
 
   <script>
+    let countdownInterval = null;
+
+    // 加载二维码
     fetch('/api/qrcode')
       .then(res => res.json())
       .then(data => {
@@ -56,6 +162,100 @@
       })
       .catch(err => {
         document.getElementById('qrcode').textContent = '加载失败';
+      });
+
+    // 显示密码输入框
+    document.getElementById('showPasswordBtn').addEventListener('click', () => {
+      document.getElementById('passwordSection').classList.add('active');
+      document.getElementById('passwordInput').focus();
+    });
+
+    // 确认开始投票
+    document.getElementById('confirmStartBtn').addEventListener('click', async () => {
+      const password = document.getElementById('passwordInput').value;
+
+      if (!password) {
+        alert('请输入管理员密码');
+        return;
+      }
+
+      try {
+        // 先登录
+        const loginRes = await fetch('/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+
+        if (!loginRes.ok) {
+          alert('密码错误');
+          return;
+        }
+
+        // 开始投票
+        const startRes = await fetch('/admin/start-voting', {
+          method: 'POST'
+        });
+
+        if (startRes.ok) {
+          const data = await startRes.json();
+          startCountdown(data.endTime);
+
+          // 隐藏开始按钮
+          document.getElementById('startSection').style.display = 'none';
+          document.getElementById('countdownSection').classList.add('active');
+        } else {
+          alert('启动投票失败');
+        }
+      } catch (error) {
+        alert('操作失败：' + error.message);
+      }
+    });
+
+    // 开始倒计时
+    function startCountdown(endTime) {
+      function updateTimer() {
+        const now = Date.now();
+        const remaining = Math.max(0, endTime - now);
+        const seconds = Math.floor(remaining / 1000);
+
+        const minutes = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+
+        const timerElement = document.getElementById('countdownTimer');
+        timerElement.textContent = `${minutes}:${secs.toString().padStart(2, '0')}`;
+
+        // 最后30秒显示警告色
+        if (seconds <= 30 && seconds > 0) {
+          timerElement.classList.add('warning');
+        }
+
+        // 倒计时结束
+        if (remaining === 0) {
+          clearInterval(countdownInterval);
+          timerElement.textContent = '0:00';
+          setTimeout(() => {
+            // 跳转到结果页
+            window.location.href = '/results';
+          }, 2000);
+        }
+      }
+
+      updateTimer();
+      countdownInterval = setInterval(updateTimer, 100);
+    }
+
+    // 检查是否已经在投票中
+    fetch('/api/voting-status')
+      .then(res => res.json())
+      .then(data => {
+        if (data.enabled && data.hasTimer) {
+          // 已经在投票中，直接显示倒计时
+          const endTime = Date.now() + data.remainingSeconds * 1000;
+          startCountdown(endTime);
+          document.getElementById('startSection').style.display = 'none';
+          document.getElementById('countdownSection').classList.add('active');
+        }
       });
   </script>
 </body>
