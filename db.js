@@ -13,12 +13,11 @@ if (!fs.existsSync(dataDir)) {
 
 let db = null;
 
-// 部门常量
+// 部门常量（10个参选部门）
 const DEPARTMENTS = [
   '人力资源行政部', '采购部', '财务部', '航运部',
-  '流程数智化部', '运营部', '海务部', '机务部',
-  '安质部', '投资部', '造船部', '法务审计部',
-  'G1小组', 'G2小组', 'PMS小组'
+  'G2', '流程数智化部', '运营部', '海务部',
+  '机务部', 'G1'
 ];
 
 // 初始化数据库
@@ -122,6 +121,11 @@ const voteOperations = {
     const result = db.exec('SELECT COUNT(*) as count FROM votes');
     if (result.length === 0) return { count: 0 };
     return { count: result[0].values[0][0] };
+  },
+
+  // 添加别名，保持兼容性
+  get countVoters() {
+    return this.countVotes;
   }
 };
 

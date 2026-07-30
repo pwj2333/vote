@@ -63,34 +63,58 @@ async function loadVotingStatus() {
   try {
     const response = await fetch('/api/voting-status');
     const data = await response.json();
-    updateVotingButton(data.enabled);
+
+    if (data.enabled && data.hasTimer) {
+      document.getElementById('startVotingBtn').disabled = true;
+      document.getElementById('stopVotingBtn').disabled = false;
+    } else {
+      document.getElementById('startVotingBtn').disabled = false;
+      document.getElementById('stopVotingBtn').disabled = true;
+    }
   } catch (error) {
     console.error('加载投票状态失败:', error);
   }
 }
 
-// 更新投票按钮显示
-function updateVotingButton(enabled) {
-  const btn = document.getElementById('toggleVotingBtn');
-  const status = document.getElementById('votingStatus');
-
-  if (enabled) {
-    btn.classList.remove('closed');
-    status.textContent = '投票进行中（点击关闭）';
-  } else {
-    btn.classList.add('closed');
-    status.textContent = '投票已关闭（点击开启）';
+// 开始投票（3分钟倒计时）
+document.getElementById('startVotingBtn').addEventListener('click', async () => {
+  if (!confirm('确认开始投票？将启动3分钟倒计时。')) {
+    return;
   }
-}
 
-// 开关投票通道
-document.getElementById('toggleVotingBtn').addEventListener('click', async () => {
   try {
-    const response = await fetch('/admin/toggle-voting', {
+    const response = await fetch('/admin/start-voting', {
       method: 'POST'
     });
-    const data = await response.json();
-    updateVotingButton(data.enabled);
+
+    if (response.ok) {
+      alert('投票已开始！3分钟倒计时启动，3分钟后自动关闭投票。');
+      loadVotingStatus();
+    } else {
+      alert('操作失败');
+    }
+  } catch (error) {
+    alert('操作失败');
+  }
+});
+
+// 立即结束投票
+document.getElementById('stopVotingBtn').addEventListener('click', async () => {
+  if (!confirm('确认立即结束投票？')) {
+    return;
+  }
+
+  try {
+    const response = await fetch('/admin/stop-voting', {
+      method: 'POST'
+    });
+
+    if (response.ok) {
+      alert('投票已结束');
+      loadVotingStatus();
+    } else {
+      alert('操作失败');
+    }
   } catch (error) {
     alert('操作失败');
   }

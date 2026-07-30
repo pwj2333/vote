@@ -23,15 +23,19 @@
 
     <div class="control-panel">
       <div class="control-item">
-        <button id="toggleVotingBtn" class="btn btn-toggle">
-          <span id="votingStatus">加载中...</span>
-        </button>
+        <button id="startVotingBtn" class="btn btn-success">开始投票（3分钟倒计时）</button>
+      </div>
+      <div class="control-item">
+        <button id="stopVotingBtn" class="btn btn-danger">立即结束投票</button>
       </div>
       <div class="control-item">
         <button id="resetBtn" class="btn btn-danger">重置所有数据</button>
       </div>
       <div class="control-item">
         <button id="exportBtn" class="btn btn-success">导出 Excel</button>
+      </div>
+      <div class="control-item">
+        <a href="/results" target="_blank" class="btn btn-primary" style="display:inline-block;text-decoration:none;text-align:center;">查看投票结果页</a>
       </div>
     </div>
 
