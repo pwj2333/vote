@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>投票结果</title>
+  <link rel="stylesheet" href="/css/results.css">
+</head>
+<body>
+  <div class="results-container">
+    <header class="results-header">
+      <h1>部门评选投票结果</h1>
+      <div id="updateTime" class="update-time">实时更新中...</div>
+    </header>
+
+    <div class="stats-summary">
+      <div class="stat-item">
+        <div class="stat-label">总投票人数</div>
+        <div class="stat-value" id="totalVoters">0</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">总票数</div>
+        <div class="stat-value" id="totalVotes">0</div>
+      </div>
+    </div>
+
+    <div class="ranking-section">
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th class="rank-col">排名</th>
+            <th class="dept-col">部门名称</th>
+            <th class="votes-col">得票数</th>
+            <th class="percent-col">占比</th>
+          </tr>
+        </thead>
+        <tbody id="rankingBody">
+          <tr><td colspan="4" class="loading">加载中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="/js/results.js"></script>
+</body>
+</html>

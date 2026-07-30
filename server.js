@@ -10,6 +10,10 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
+// 投票倒计时相关变量
+let votingEndTime = null; // 投票结束时间（时间戳）
+let votingTimer = null;   // 倒计时定时器
+
 // 初始化数据库（异步）
 initDatabase().then(() => {
   console.log('Database ready');
@@ -40,11 +44,22 @@ app.get('/api/departments', (req, res) => {
   res.json({ departments: DEPARTMENTS });
 });
 
-// 检查投票状态 API
+// 检查投票状态 API（包含倒计时）
 app.get('/api/voting-status', (req, res) => {
   const result = configOperations.getConfig('voting_enabled');
   const enabled = result ? result.value === 'true' : true;
-  res.json({ enabled });
+
+  let remainingSeconds = 0;
+  if (enabled && votingEndTime) {
+    const now = Date.now();
+    remainingSeconds = Math.max(0, Math.floor((votingEndTime - now) / 1000));
+  }
+
+  res.json({
+    enabled,
+    remainingSeconds,
+    hasTimer: votingEndTime !== null
+  });
 });
 
 // 提交投票 API
@@ -94,6 +109,33 @@ app.post('/api/vote', (req, res) => {
 // 二维码页面路由
 app.get('/qr', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'qr.html'));
+});
+
+// 投票结果展示页（公开访问）
+app.get('/results', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'results.html'));
+});
+
+// 公开统计数据 API（无需认证）
+app.get('/api/public-stats', (req, res) => {
+  try {
+    const stats = getDepartmentStats();
+    const totalVoters = voteOperations.countVoters().count;
+    const totalVotes = totalVoters * 3;
+
+    const statsWithPercentage = stats.map(item => ({
+      ...item,
+      percentage: totalVotes > 0 ? ((item.votes / totalVotes) * 100).toFixed(1) : '0.0'
+    }));
+
+    res.json({
+      stats: statsWithPercentage,
+      totalVoters,
+      totalVotes
+    });
+  } catch (error) {
+    res.status(500).json({ error: '获取统计数据失败' });
+  }
 });
 
 // 生成二维码 API
@@ -173,15 +215,48 @@ app.get('/admin/votes', requireAuth, (req, res) => {
   }
 });
 
-// 开关投票通道 API
-app.post('/admin/toggle-voting', requireAuth, (req, res) => {
+// 开启投票（3分钟倒计时）
+app.post('/admin/start-voting', requireAuth, (req, res) => {
   try {
-    const current = configOperations.getConfig('voting_enabled');
-    const newValue = current.value === 'true' ? 'false' : 'true';
-    configOperations.setConfig('voting_enabled', newValue);
-    res.json({ enabled: newValue === 'true' });
+    // 开启投票
+    configOperations.setConfig('voting_enabled', 'true');
+
+    // 设置3分钟后结束
+    votingEndTime = Date.now() + 3 * 60 * 1000; // 3分钟
+
+    // 清除旧的计时器
+    if (votingTimer) {
+      clearTimeout(votingTimer);
+    }
+
+    // 设置新的计时器，3分钟后自动关闭投票
+    votingTimer = setTimeout(() => {
+      configOperations.setConfig('voting_enabled', 'false');
+      votingEndTime = null;
+      console.log('投票已自动关闭（3分钟倒计时结束）');
+    }, 3 * 60 * 1000);
+
+    res.json({ success: true, endTime: votingEndTime });
   } catch (error) {
-    res.status(500).json({ error: '切换投票状态失败' });
+    res.status(500).json({ error: '启动投票失败' });
+  }
+});
+
+// 手动关闭投票
+app.post('/admin/stop-voting', requireAuth, (req, res) => {
+  try {
+    configOperations.setConfig('voting_enabled', 'false');
+
+    // 清除计时器
+    if (votingTimer) {
+      clearTimeout(votingTimer);
+      votingTimer = null;
+    }
+    votingEndTime = null;
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: '关闭投票失败' });
   }
 });
 
