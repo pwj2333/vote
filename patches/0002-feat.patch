@@ -1,0 +1,96 @@
+From fababb131440a1bf546173f5033672529ec6199d Mon Sep 17 00:00:00 2001
+From: kingsley-deng <dengjingrui@ruicogd.com.cn>
+Date: Wed, 29 Jul 2026 17:17:15 +0800
+Subject: [PATCH 02/13] =?UTF-8?q?feat:=20=E5=88=9D=E5=A7=8B=E5=8C=96?=
+ =?UTF-8?q?=E9=A1=B9=E7=9B=AE=E5=92=8C=E4=BE=9D=E8=B5=96=E9=85=8D=E7=BD=AE?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- 使用 sql.js 替代 better-sqlite3（避免编译问题）
+- 配置基础项目结构
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+---
+ .env.example |  2 ++
+ README.md    | 30 ++++++++++++++++++++++++++++++
+ package.json | 21 +++++++++++++++++++++
+ 3 files changed, 53 insertions(+)
+ create mode 100644 .env.example
+ create mode 100644 README.md
+ create mode 100644 package.json
+
+diff --git a/.env.example b/.env.example
+new file mode 100644
+index 0000000..c03072a
+--- /dev/null
++++ b/.env.example
+@@ -0,0 +1,2 @@
++ADMIN_PASSWORD=admin123
++PORT=3000
+diff --git a/README.md b/README.md
+new file mode 100644
+index 0000000..43987c4
+--- /dev/null
++++ b/README.md
+@@ -0,0 +1,30 @@
++# 部门评选投票系统
++
++## 安装
++
++```bash
++npm install
++```
++
++## 配置
++
++复制 .env.example 到 .env 并修改密码：
++```bash
++copy .env.example .env
++```
++
++## 启动
++
++```bash
++npm start
++```
++
++## 访问
++
++- 投票页：http://localhost:3000
++- 后台管理：http://localhost:3000/admin
++- 二维码：http://localhost:3000/qr
++
++## 端口映射
++
++在路由器配置端口转发，将外部端口映射到本机 3000 端口。
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..9c9a995
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,21 @@
++{
++  "name": "voting-system",
++  "version": "1.0.0",
++  "description": "部门评选投票系统",
++  "main": "server.js",
++  "scripts": {
++    "start": "node server.js",
++    "dev": "node server.js"
++  },
++  "dependencies": {
++    "express": "^4.18.2",
++    "sql.js": "^1.8.0",
++    "qrcode": "^1.5.3",
++    "express-session": "^1.17.3",
++    "exceljs": "^4.3.0",
++    "dotenv": "^16.0.3"
++  },
++  "engines": {
++    "node": ">=16.0.0"
++  }
++}
+-- 
+2.54.0.windows.1
+

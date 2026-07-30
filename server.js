@@ -4,7 +4,7 @@ const session = require('express-session');
 const path = require('path');
 const QRCode = require('qrcode');
 const ExcelJS = require('exceljs');
-const { initDatabase, voteOperations, configOperations, getDepartmentStats, submitVote, DEPARTMENTS } = require('./db');
+const { initDatabase, voteOperations, configOperations, getDepartmentStats, submitVote, ALL_DEPARTMENTS, VOTING_DEPARTMENTS } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -39,9 +39,14 @@ app.get('/success', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'success.html'));
 });
 
-// 获取部门列表 API
-app.get('/api/departments', (req, res) => {
-  res.json({ departments: DEPARTMENTS });
+// 获取完整部门列表 API（用于所属部门选择）
+app.get('/api/all-departments', (req, res) => {
+  res.json({ departments: ALL_DEPARTMENTS });
+});
+
+// 获取参选部门列表 API（用于投票选择）
+app.get('/api/voting-departments', (req, res) => {
+  res.json({ departments: VOTING_DEPARTMENTS });
 });
 
 // 检查投票状态 API（包含倒计时）

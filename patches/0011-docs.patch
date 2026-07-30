@@ -1,0 +1,134 @@
+From af76098cf054dda0a3e18c98a8007a66e55701e7 Mon Sep 17 00:00:00 2001
+From: kingsley-deng <dengjingrui@ruicogd.com.cn>
+Date: Wed, 29 Jul 2026 22:46:38 +0800
+Subject: [PATCH 11/13] =?UTF-8?q?docs:=20=E6=B7=BB=E5=8A=A0=E4=B8=80?=
+ =?UTF-8?q?=E9=94=AE=E9=83=A8=E7=BD=B2=E8=AF=B4=E6=98=8E=E6=96=87=E6=A1=A3?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+---
+ DEPLOY.md | 56 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ deploy.sh | 46 +++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 102 insertions(+)
+ create mode 100644 DEPLOY.md
+ create mode 100644 deploy.sh
+
+diff --git a/DEPLOY.md b/DEPLOY.md
+new file mode 100644
+index 0000000..4566311
+--- /dev/null
++++ b/DEPLOY.md
+@@ -0,0 +1,56 @@
++## 🚀 一键部署到阿里云服务器
++
++所有配置文件已准备就绪，你只需要：
++
++### 1. 上传代码到服务器
++```bash
++# 方式1：通过 Git
++git clone <你的仓库地址>
++cd vote
++
++# 方式2：直接上传整个文件夹到服务器
++```
++
++### 2. 运行一键部署脚本
++```bash
++bash deploy.sh
++```
++
++**就这么简单！** 脚本会自动：
++- ✅ 安装依赖
++- ✅ 检查配置文件
++- ✅ 启动服务（自动检测 PM2）
++
++### 3. 访问地址
++
++- **投票页**：https://vote.ruicogd.com
++- **后台管理**：https://vote.ruicogd.com/admin （密码：`admin123`）
++- **二维码**：https://vote.ruicogd.com/qr
++
++---
++
++## 📋 已配置文件
++
++所有配置文件都已经创建好了：
++
++- ✅ `.env` - 环境变量配置（域名、密码、端口）
++- ✅ `deploy.sh` - 一键部署脚本
++- ✅ `deployment-config.txt` - 详细部署说明
++
++## 🔧 手动启动（如果需要）
++
++如果你不想用脚本，也可以手动启动：
++
++```bash
++npm install
++npm start
++```
++
++或使用 PM2：
++```bash
++pm2 start server.js --name voting-system
++```
++
++---
++
++**一切都准备好了，直接在服务器上运行 `bash deploy.sh` 即可！** 🎉
+diff --git a/deploy.sh b/deploy.sh
+new file mode 100644
+index 0000000..8ecb54e
+--- /dev/null
++++ b/deploy.sh
+@@ -0,0 +1,46 @@
++#!/bin/bash
++
++echo "=== 部门评选投票系统 - 一键部署脚本 ==="
++echo ""
++
++# 1. 安装依赖
++echo "📦 安装依赖..."
++npm install
++
++# 2. 检查 .env 文件
++if [ ! -f .env ]; then
++    echo "❌ 错误：.env 文件不存在"
++    exit 1
++fi
++
++echo "✅ 配置文件已就绪"
++
++# 3. 启动服务
++echo ""
++echo "🚀 启动服务..."
++
++# 检查是否安装 PM2
++if command -v pm2 &> /dev/null; then
++    echo "使用 PM2 启动服务..."
++    pm2 delete voting-system 2>/dev/null
++    pm2 start server.js --name voting-system
++    pm2 save
++    echo ""
++    echo "✅ 服务已启动（PM2）"
++    echo "查看日志：pm2 logs voting-system"
++    echo "停止服务：pm2 stop voting-system"
++else
++    echo "PM2 未安装，使用普通模式启动..."
++    echo "建议安装 PM2：npm install -g pm2"
++    npm start &
++    echo ""
++    echo "✅ 服务已启动"
++fi
++
++echo ""
++echo "=== 访问地址 ==="
++echo "投票页：https://vote.ruicogd.com"
++echo "后台管理：https://vote.ruicogd.com/admin （密码：admin123）"
++echo "二维码：https://vote.ruicogd.com/qr"
++echo ""
++echo "🎉 部署完成！"
+-- 
+2.54.0.windows.1
+
