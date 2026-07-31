@@ -90,6 +90,9 @@ document.getElementById('startVotingBtn').addEventListener('click', async () => 
     if (response.ok) {
       alert('投票已开始！3分钟倒计时启动，3分钟后自动关闭投票。');
       loadVotingStatus();
+
+      // 打开新标签页显示二维码页面
+      window.open('https://vote.ruicogd.com/qr', '_blank');
     } else {
       alert('操作失败');
     }
