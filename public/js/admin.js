@@ -14,6 +14,7 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
       document.getElementById('adminPanel').style.display = 'block';
       loadStats();
       loadVotingStatus();
+      loadVotingDuration();
       startAutoRefresh();
     } else {
       document.getElementById('loginError').textContent = '密码错误';
@@ -58,6 +59,22 @@ async function loadStats() {
   }
 }
 
+// 加载投票倒计时配置
+async function loadVotingDuration() {
+  try {
+    const response = await fetch('/admin/voting-duration');
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || '加载投票时长失败');
+    }
+
+    document.getElementById('votingDurationInput').value = data.durationSeconds;
+  } catch (error) {
+    console.error('加载投票时长失败:', error);
+  }
+}
+
 // 加载投票状态
 async function loadVotingStatus() {
   try {
@@ -76,9 +93,38 @@ async function loadVotingStatus() {
   }
 }
 
-// 开始投票（3分钟倒计时）
+// 保存投票倒计时配置
+document.getElementById('saveVotingDurationBtn').addEventListener('click', async () => {
+  const input = document.getElementById('votingDurationInput');
+  const durationSeconds = Number(input.value);
+
+  if (!Number.isInteger(durationSeconds) || durationSeconds < 1 || durationSeconds > 86400) {
+    alert('投票时长必须是 1-86400 秒的整数');
+    return;
+  }
+
+  try {
+    const response = await fetch('/admin/voting-duration', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ durationSeconds })
+    });
+    const data = await response.json();
+
+    if (response.ok) {
+      input.value = data.durationSeconds;
+      alert('投票时长已保存，下次开始投票时生效');
+    } else {
+      alert(data.error || '保存投票时长失败');
+    }
+  } catch (error) {
+    alert('保存投票时长失败');
+  }
+});
+
+// 开始投票
 document.getElementById('startVotingBtn').addEventListener('click', async () => {
-  if (!confirm('确认开始投票？将启动3分钟倒计时。')) {
+  if (!confirm('确认开始投票？将按当前设置启动倒计时。')) {
     return;
   }
 
@@ -88,7 +134,10 @@ document.getElementById('startVotingBtn').addEventListener('click', async () => 
     });
 
     if (response.ok) {
-      alert('投票已开始！3分钟倒计时启动，3分钟后自动关闭投票。');
+      const data = await response.json();
+      const minutes = Math.floor(data.durationSeconds / 60);
+      const seconds = data.durationSeconds % 60;
+      alert(`投票已开始！倒计时 ${minutes} 分 ${seconds} 秒，结束后自动关闭投票。`);
       loadVotingStatus();
     } else {
       alert('操作失败');

@@ -5,6 +5,7 @@ const path = require('path');
 const QRCode = require('qrcode');
 const ExcelJS = require('exceljs');
 const { initDatabase, voteOperations, configOperations, getDepartmentStats, submitVote, ALL_DEPARTMENTS, VOTING_DEPARTMENTS } = require('./db');
+const { getVotingDurationSeconds, normalizeVotingDurationSeconds } = require('./voting-duration');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -58,6 +59,8 @@ app.get('/api/departments', (req, res) => {
 app.get('/api/voting-status', (req, res) => {
   const result = configOperations.getConfig('voting_enabled');
   const enabled = result ? result.value === 'true' : true;
+  const durationConfig = configOperations.getConfig('voting_duration_seconds');
+  const durationSeconds = getVotingDurationSeconds(durationConfig && durationConfig.value);
 
   let remainingSeconds = 0;
   if (enabled && votingEndTime) {
@@ -68,7 +71,8 @@ app.get('/api/voting-status', (req, res) => {
   res.json({
     enabled,
     remainingSeconds,
-    hasTimer: votingEndTime !== null
+    hasTimer: votingEndTime !== null,
+    durationSeconds
   });
 });
 
@@ -185,7 +189,23 @@ function requireAuth(req, res, next) {
   }
 }
 
-// 获取统计数据 API
+// 获取投票倒计时配置
+app.get('/admin/voting-duration', requireAuth, (req, res) => {
+  const config = configOperations.getConfig('voting_duration_seconds');
+  res.json({ durationSeconds: getVotingDurationSeconds(config && config.value) });
+});
+
+// 保存投票倒计时配置
+app.post('/admin/voting-duration', requireAuth, (req, res) => {
+  try {
+    const durationSeconds = normalizeVotingDurationSeconds(req.body.durationSeconds);
+    configOperations.setConfig('voting_duration_seconds', String(durationSeconds));
+    res.json({ success: true, durationSeconds });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 app.get('/admin/stats', requireAuth, (req, res) => {
   try {
     const stats = getDepartmentStats();
@@ -225,28 +245,30 @@ app.get('/admin/votes', requireAuth, (req, res) => {
   }
 });
 
-// 开启投票（3分钟倒计时）
+// 开启投票（使用配置倒计时）
 app.post('/admin/start-voting', requireAuth, (req, res) => {
   try {
     // 开启投票
     configOperations.setConfig('voting_enabled', 'true');
+    const durationConfig = configOperations.getConfig('voting_duration_seconds');
+    const durationSeconds = getVotingDurationSeconds(durationConfig && durationConfig.value);
 
-    // 设置3分钟后结束
-    votingEndTime = Date.now() + 3 * 60 * 1000; // 3分钟
+    // 按配置时长设置结束时间
+    votingEndTime = Date.now() + durationSeconds * 1000;
 
     // 清除旧的计时器
     if (votingTimer) {
       clearTimeout(votingTimer);
     }
 
-    // 设置新的计时器，3分钟后自动关闭投票
+    // 按配置时长自动关闭投票
     votingTimer = setTimeout(() => {
       configOperations.setConfig('voting_enabled', 'false');
       votingEndTime = null;
-      console.log('投票已自动关闭（3分钟倒计时结束）');
-    }, 3 * 60 * 1000);
+      console.log('投票已自动关闭（倒计时结束）');
+    }, durationSeconds * 1000);
 
-    res.json({ success: true, endTime: votingEndTime });
+    res.json({ success: true, endTime: votingEndTime, durationSeconds });
   } catch (error) {
     res.status(500).json({ error: '启动投票失败' });
   }

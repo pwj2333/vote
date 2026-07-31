@@ -1,6 +1,7 @@
 const initSqlJs = require('sql.js');
 const fs = require('fs');
 const path = require('path');
+const { DEFAULT_VOTING_DURATION_SECONDS } = require('./voting-duration');
 
 // 数据库文件路径
 const dataDir = path.join(__dirname, 'data');
@@ -67,6 +68,11 @@ async function initDatabase() {
   const configCheck = db.exec('SELECT COUNT(*) as count FROM config WHERE key = "voting_enabled"');
   if (configCheck.length === 0 || configCheck[0].values[0][0] === 0) {
     db.run('INSERT INTO config (key, value) VALUES ("voting_enabled", "true")');
+  }
+
+  const durationCheck = db.exec('SELECT COUNT(*) as count FROM config WHERE key = "voting_duration_seconds"');
+  if (durationCheck.length === 0 || durationCheck[0].values[0][0] === 0) {
+    db.run('INSERT INTO config (key, value) VALUES ("voting_duration_seconds", ?)', [String(DEFAULT_VOTING_DURATION_SECONDS)]);
   }
 
   // 保存数据库到文件

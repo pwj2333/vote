@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>后台管理</title>
-  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/css/admin.css?v=duration-20260731">
 </head>
 <body>
   <div id="loginPanel" class="login-panel">
@@ -23,7 +23,13 @@
 
     <div class="control-panel">
       <div class="control-item">
-        <button id="startVotingBtn" class="btn btn-success">开始投票（3分钟倒计时）</button>
+        <button id="startVotingBtn" class="btn btn-success">开始投票（按设置倒计时）</button>
+      </div>
+      <div class="control-item duration-control">
+        <label for="votingDurationInput" class="control-label">投票时长（秒）</label>
+        <input type="number" id="votingDurationInput" class="form-input" min="1" max="86400" step="1" value="210">
+        <button id="saveVotingDurationBtn" class="btn btn-primary">保存时长</button>
+        <p class="control-hint">默认 210 秒，修改后下次开始投票生效</p>
       </div>
       <div class="control-item">
         <button id="stopVotingBtn" class="btn btn-danger">立即结束投票</button>
@@ -90,6 +96,6 @@
     </section>
   </div>
 
-  <script src="/js/admin.js"></script>
+  <script src="/js/admin.js?v=duration-20260731"></script>
 </body>
 </html>
