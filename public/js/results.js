@@ -22,7 +22,7 @@ async function loadStats() {
       return;
     }
 
-    data.stats.forEach((item, index) => {
+    getVisibleStats(data.stats).forEach((item, index) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td class="rank-col">${index + 1}</td>
