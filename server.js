@@ -11,12 +11,58 @@ const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
 // 投票倒计时相关变量
+// 投票总时长（秒），默认 3 分钟，可用 VOTING_DURATION_SECONDS 覆盖
+const VOTING_DURATION_SECONDS = Number(process.env.VOTING_DURATION_SECONDS) > 0
+  ? Number(process.env.VOTING_DURATION_SECONDS)
+  : 3 * 60;
 let votingEndTime = null; // 投票结束时间（时间戳）
 let votingTimer = null;   // 倒计时定时器
+
+// 剩余秒数（服务器时钟为唯一基准，裁剪到 [0, 总时长]）
+function getRemainingSeconds() {
+  if (!votingEndTime) return 0;
+  // 向上取整，避免刚开始就显示 2:59
+  const seconds = Math.ceil((votingEndTime - Date.now()) / 1000);
+  return Math.min(Math.max(0, seconds), VOTING_DURATION_SECONDS);
+}
+
+// 安排自动关闭投票的计时器
+function scheduleVotingEnd(endTime) {
+  votingEndTime = endTime;
+
+  if (votingTimer) {
+    clearTimeout(votingTimer);
+  }
+
+  votingTimer = setTimeout(() => {
+    configOperations.setConfig('voting_enabled', 'false');
+    configOperations.setConfig('voting_end_time', '');
+    votingEndTime = null;
+    votingTimer = null;
+    console.log('投票已自动关闭（倒计时结束）');
+  }, Math.max(0, endTime - Date.now()));
+}
 
 // 初始化数据库（异步）
 initDatabase().then(() => {
   console.log('Database ready');
+
+  // 服务重启后恢复未结束的倒计时，避免投票永久开启
+  const enabledConfig = configOperations.getConfig('voting_enabled');
+  const endTimeConfig = configOperations.getConfig('voting_end_time');
+  const savedEndTime = endTimeConfig ? Number(endTimeConfig.value) : NaN;
+
+  if (enabledConfig && enabledConfig.value === 'true' && Number.isFinite(savedEndTime) && savedEndTime > 0) {
+    if (savedEndTime > Date.now()) {
+      scheduleVotingEnd(savedEndTime);
+      console.log(`已恢复投票倒计时，剩余 ${getRemainingSeconds()} 秒`);
+    } else {
+      // 停机期间倒计时已经走完
+      configOperations.setConfig('voting_enabled', 'false');
+      configOperations.setConfig('voting_end_time', '');
+      console.log('停机期间倒计时已结束，投票保持关闭');
+    }
+  }
 });
 
 // 中间件配置
@@ -54,15 +100,12 @@ app.get('/api/voting-status', (req, res) => {
   const result = configOperations.getConfig('voting_enabled');
   const enabled = result ? result.value === 'true' : true;
 
-  let remainingSeconds = 0;
-  if (enabled && votingEndTime) {
-    const now = Date.now();
-    remainingSeconds = Math.max(0, Math.floor((votingEndTime - now) / 1000));
-  }
+  const remainingSeconds = enabled ? getRemainingSeconds() : 0;
 
   res.json({
     enabled,
     remainingSeconds,
+    totalSeconds: VOTING_DURATION_SECONDS,
     hasTimer: votingEndTime !== null
   });
 });
@@ -223,25 +266,20 @@ app.get('/admin/votes', requireAuth, (req, res) => {
 // 开启投票（3分钟倒计时）
 app.post('/admin/start-voting', requireAuth, (req, res) => {
   try {
-    // 开启投票
+    const endTime = Date.now() + VOTING_DURATION_SECONDS * 1000;
+
+    // 开启投票并持久化结束时间，服务重启后可恢复
     configOperations.setConfig('voting_enabled', 'true');
+    configOperations.setConfig('voting_end_time', String(endTime));
 
-    // 设置3分钟后结束
-    votingEndTime = Date.now() + 3 * 60 * 1000; // 3分钟
+    scheduleVotingEnd(endTime);
 
-    // 清除旧的计时器
-    if (votingTimer) {
-      clearTimeout(votingTimer);
-    }
-
-    // 设置新的计时器，3分钟后自动关闭投票
-    votingTimer = setTimeout(() => {
-      configOperations.setConfig('voting_enabled', 'false');
-      votingEndTime = null;
-      console.log('投票已自动关闭（3分钟倒计时结束）');
-    }, 3 * 60 * 1000);
-
-    res.json({ success: true, endTime: votingEndTime });
+    // 下发剩余秒数而不是绝对时间戳，客户端不再依赖本机时钟与服务器一致
+    res.json({
+      success: true,
+      remainingSeconds: getRemainingSeconds(),
+      totalSeconds: VOTING_DURATION_SECONDS
+    });
   } catch (error) {
     res.status(500).json({ error: '启动投票失败' });
   }
@@ -251,6 +289,7 @@ app.post('/admin/start-voting', requireAuth, (req, res) => {
 app.post('/admin/stop-voting', requireAuth, (req, res) => {
   try {
     configOperations.setConfig('voting_enabled', 'false');
+    configOperations.setConfig('voting_end_time', '');
 
     // 清除计时器
     if (votingTimer) {

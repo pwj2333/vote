@@ -146,6 +146,7 @@
     </div>
   </div>
 
+  <script src="/js/countdown-utils.js"></script>
   <script>
     let countdownInterval = null;
 
@@ -199,7 +200,7 @@
 
         if (startRes.ok) {
           const data = await startRes.json();
-          startCountdown(data.endTime);
+          startCountdown(data.remainingSeconds, data.totalSeconds);
 
           // 隐藏开始按钮
           document.getElementById('startSection').style.display = 'none';
@@ -213,26 +214,33 @@
     });
 
     // 开始倒计时
-    function startCountdown(endTime) {
+    // remainingSeconds 由服务端下发，以本页加载时刻为起点做本地递减，
+    // 不再拿服务器时间戳减本机 Date.now()，避免时钟偏差把 3:00 显示成 3:30
+    function startCountdown(remainingSeconds, totalSeconds) {
+      const maxSeconds = Number(totalSeconds) > 0 ? Number(totalSeconds) : COUNTDOWN_MAX_SECONDS;
+      const startedAt = Date.now();
+      const initialMs = clampRemainingSeconds(remainingSeconds * 1000, maxSeconds) * 1000;
+
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+      }
+
+      const timerElement = document.getElementById('countdownTimer');
+      timerElement.classList.remove('warning');
+
       function updateTimer() {
-        const now = Date.now();
-        const remaining = Math.max(0, endTime - now);
-        const seconds = Math.floor(remaining / 1000);
+        const remaining = Math.max(0, initialMs - (Date.now() - startedAt));
+        const seconds = clampRemainingSeconds(remaining, maxSeconds);
 
-        const minutes = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-
-        const timerElement = document.getElementById('countdownTimer');
-        timerElement.textContent = `${minutes}:${secs.toString().padStart(2, '0')}`;
+        timerElement.textContent = formatCountdown(remaining, maxSeconds);
 
         // 最后30秒显示警告色
-        if (seconds <= 30 && seconds > 0) {
-          timerElement.classList.add('warning');
-        }
+        timerElement.classList.toggle('warning', seconds <= 30 && seconds > 0);
 
         // 倒计时结束
         if (remaining === 0) {
           clearInterval(countdownInterval);
+          countdownInterval = null;
           timerElement.textContent = '0:00';
           setTimeout(() => {
             // 跳转到结果页
@@ -249,10 +257,9 @@
     fetch('/api/voting-status')
       .then(res => res.json())
       .then(data => {
-        if (data.enabled && data.hasTimer) {
+        if (data.enabled && data.hasTimer && data.remainingSeconds > 0) {
           // 已经在投票中，直接显示倒计时
-          const endTime = Date.now() + data.remainingSeconds * 1000;
-          startCountdown(endTime);
+          startCountdown(data.remainingSeconds, data.totalSeconds);
           document.getElementById('startSection').style.display = 'none';
           document.getElementById('countdownSection').classList.add('active');
         }
