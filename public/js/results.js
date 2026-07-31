@@ -23,6 +23,9 @@ async function loadStats() {
     }
 
     data.stats.forEach((item, index) => {
+      // 只显示前三名
+      if (index >= 3) return;
+
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td class="rank-col">${index + 1}</td>
